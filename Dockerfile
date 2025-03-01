@@ -25,7 +25,7 @@ WORKDIR /root/
 COPY --from=builder /app/demo-service .
 
 # Expose the application port
-EXPOSE 8888
+EXPOSE 8883
 
 # Run the application
 CMD ["./demo-service"]

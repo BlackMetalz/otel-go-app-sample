@@ -32,7 +32,7 @@ func initProvider() (func(context.Context) error, error) {
 	// Get collector endpoint from environment variable or use default
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if endpoint == "" {
-		endpoint = "otel-collector:4317"
+		endpoint = "127.0.0.1:4317"
 	}
 
 	// Set up a connection to the collector
@@ -173,7 +173,16 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Request processed successfully at %s\n", time.Now().Format(time.RFC3339))
 }
 
+func handleSlowAPI(w http.ResponseWriter, r *http.Request) {
+    // Simulate slow processing
+    time.Sleep(1000 * time.Millisecond)
+    w.WriteHeader(http.StatusOK)
+    fmt.Fprintf(w, "Slow API response at %s\n", time.Now().Format(time.RFC3339))
+}
+
 func main() {
+	// Set service name for Jaeger UI
+	os.Setenv("SERVICE_NAME", "otel-go-app-sample-kienlt")
 	log.Println("Starting OpenTelemetry example service...")
 
 	// Initialize OpenTelemetry
@@ -195,10 +204,13 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
+    // Slow API endpoint
+    http.HandleFunc("/api", handleSlowAPI)
+
 	// Start HTTP server
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8883"
 	}
 	
 	server := &http.Server{
