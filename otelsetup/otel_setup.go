@@ -34,7 +34,7 @@ func InitProvider() (func(context.Context) error, error) {
     }
 
     // Set up a connection to the collector
-    conn, err := grpc.DialContext(ctx, endpoint,
+    conn, err := grpc.Dial(endpoint,
         grpc.WithTransportCredentials(insecure.NewCredentials()),
         grpc.WithBlock())
     if err != nil {
@@ -76,7 +76,7 @@ func InitProvider() (func(context.Context) error, error) {
 func NewResource() *resource.Resource {
     serviceName := os.Getenv("SERVICE_NAME")
     if serviceName == "" {
-        serviceName = "demo-service"
+        serviceName = "otel-go-app-sample"
     }
 
     r, _ := resource.Merge(

@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
+	"fmt"
 
 	"otel-go-app-example/otelsetup"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"otel-go-app-example/utils"
+
+	// "github.com/gorilla/mux" // Ensure this is imported
 	// "go.opentelemetry.io/otel"
 	// "go.opentelemetry.io/otel/attribute"
 	// "go.opentelemetry.io/otel/codes"
@@ -25,37 +28,19 @@ import (
 
 )
 
-func handleRequest(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Handle database operations
-	if err := otelsetup.DatabaseCall(ctx); err != nil {
-		http.Error(w, fmt.Sprintf("Database error: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Call external API
-	if err := otelsetup.ExternalAPICall(ctx); err != nil {
-		http.Error(w, fmt.Sprintf("External API error: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Success response
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Request processed successfully at %s\n", time.Now().Format(time.RFC3339))
-}
-
-func handleSlowAPI(w http.ResponseWriter, r *http.Request) {
-	// Simulate slow processing
-	time.Sleep(1000 * time.Millisecond)
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Slow API response at %s\n", time.Now().Format(time.RFC3339))
-}
-
 func main() {
 	// Set service name for Jaeger UI
 	os.Setenv("SERVICE_NAME", "otel-go-app-sample-kienlt")
-	log.Println("Starting OpenTelemetry example service...")
+	serviceName := os.Getenv("SERVICE_NAME")
+	log.Printf("Starting OpenTelemetry with service name: %s", serviceName)
+
+	// Initialize the database connection
+	errMysql := utils.InitDB("kienlt", "123123")
+	if errMysql != nil {
+		fmt.Println(errMysql)
+		return
+	}
+	defer utils.DB.Close() // Close the connection when done
 
 	// Initialize OpenTelemetry
 	shutdown, err := otelsetup.InitProvider()
@@ -63,21 +48,9 @@ func main() {
 		log.Fatalf("Failed to initialize OpenTelemetry: %v", err)
 	}
 
-	// Wrap the handler with OpenTelemetry instrumentation
-	handler := http.HandlerFunc(handleRequest)
-	wrappedHandler := otelhttp.NewHandler(handler, "http.server.request")
-
-	// Set up an HTTP server
-	http.Handle("/", wrappedHandler)
-
-	// Custom health check without tracing
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
-
-	// Slow API endpoint
-	http.HandleFunc("/api", handleSlowAPI)
+	// Set up the Gorilla Mux router
+	router := utils.SetupRouter()
+	wrappedHandler := otelhttp.NewHandler(router, "http.server.request")
 
 	// Start HTTP server
 	port := os.Getenv("PORT")
@@ -86,7 +59,8 @@ func main() {
 	}
 
 	server := &http.Server{
-		Addr: ":" + port,
+		Addr:    ":" + port,
+		Handler: wrappedHandler, // Use the OTel-wrapped router
 	}
 
 	// Handle graceful shutdown
