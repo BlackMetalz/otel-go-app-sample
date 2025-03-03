@@ -35,7 +35,7 @@ func main() {
 	log.Printf("Starting OpenTelemetry with service name: %s", serviceName)
 
 	// Initialize the database connection
-	errMysql := utils.InitDB("kienlt", "123123")
+	errMysql := utils.InitDB("kienlt", "123123") // this is just an example, please replace with your own database credentials xD
 	if errMysql != nil {
 		fmt.Println(errMysql)
 		return
