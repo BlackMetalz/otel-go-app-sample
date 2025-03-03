@@ -101,7 +101,7 @@ func validateRequest(ctx context.Context) error {
 	_, span := otel.Tracer("utils").Start(ctx, "validateRequest")
 	defer span.End()
 
-	time.Sleep(100 * time.Millisecond) // Small delay
+	time.Sleep(1000 * time.Millisecond) // Small delay (1s or 100ms your choice)
 	if rand.Float32() < 0.2 {          // 20% chance of failure
 		span.SetAttributes(attribute.String("error", "validation failed"))
 		return fmt.Errorf("request validation failed")
@@ -114,7 +114,7 @@ func processData(ctx context.Context, products []Product) (string, error) {
 	_, span := otel.Tracer("utils").Start(ctx, "processData")
 	defer span.End()
 
-	time.Sleep(500 * time.Millisecond) // Medium delay
+	time.Sleep(1500 * time.Millisecond) // Medium delay
 	if rand.Float32() < 0.3 {          // 30% chance of failure
 		span.SetAttributes(attribute.String("error", "processing failed"))
 		return "failed", fmt.Errorf("data processing failed")
